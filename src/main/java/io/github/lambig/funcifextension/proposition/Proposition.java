@@ -1,4 +1,4 @@
-package com.github.lambig.funcifextension.proposition;
+package io.github.lambig.funcifextension.proposition;
 
 import java.util.Arrays;
 import java.util.function.Function;

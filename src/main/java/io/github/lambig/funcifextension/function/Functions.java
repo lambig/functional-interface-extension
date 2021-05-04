@@ -1,4 +1,4 @@
-package com.github.lambig.funcifextension.function;
+package io.github.lambig.funcifextension.function;
 
 import java.util.function.Function;
 import lombok.AccessLevel;

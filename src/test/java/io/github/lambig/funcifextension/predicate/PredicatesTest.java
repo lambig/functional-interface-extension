@@ -1,7 +1,5 @@
-package com.github.lambig.funcifextension.predicate;
+package io.github.lambig.funcifextension.predicate;
 
-import static com.github.lambig.funcifextension.predicate.Predicates.and;
-import static com.github.lambig.funcifextension.predicate.Predicates.or;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 
@@ -16,7 +14,7 @@ class PredicatesTest {
     void conjunction_all_true() {
       //SetUp
       Predicate<Integer> target =
-          and(
+          Predicates.and(
               x -> x > 0,
               x -> x <= 10);
       //Exercise
@@ -29,7 +27,7 @@ class PredicatesTest {
     void conjunction_contains_false() {
       //SetUp
       Predicate<Integer> target =
-          and(
+          Predicates.and(
               x -> x > 0,
               x -> x != 4,
               x -> x <= 10);
@@ -46,7 +44,7 @@ class PredicatesTest {
     void disjunction_all_true() {
       //SetUp
       Predicate<Integer> target =
-          or(
+          Predicates.or(
               x -> x > 0,
               x -> x <= 10);
       //Exercise
@@ -59,7 +57,7 @@ class PredicatesTest {
     void disjunction_contains_false() {
       //SetUp
       Predicate<Integer> target =
-          or(
+          Predicates.or(
               x -> x > 0,
               x -> x != 4,
               x -> x <= 10);
@@ -73,7 +71,7 @@ class PredicatesTest {
     void disjunction_all_false() {
       //SetUp
       Predicate<Integer> target =
-          or(
+          Predicates.or(
               x -> x <= 0,
               x -> x != 4,
               x -> x > 10);

@@ -1,9 +1,5 @@
-package com.github.lambig.funcifextension.proposition;
+package io.github.lambig.funcifextension.proposition;
 
-import static com.github.lambig.funcifextension.proposition.Proposition.and;
-import static com.github.lambig.funcifextension.proposition.Proposition.or;
-import static com.github.lambig.funcifextension.proposition.Proposition.predicate;
-import static com.github.lambig.funcifextension.proposition.Proposition.subject;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 
@@ -34,7 +30,7 @@ class PropositionTest {
     void conjunction_all_true() {
       // SetUp
       Proposition target =
-          and(
+          Proposition.and(
               () -> true,
               () -> 1 == 2 - 1);
       // Exercise
@@ -47,7 +43,7 @@ class PropositionTest {
     void conjunction_contains_false() {
       // SetUp
       Proposition target =
-          and(
+          Proposition.and(
               () -> true,
               () -> 1 > 2);
       // Exercise
@@ -60,7 +56,7 @@ class PropositionTest {
     void no_proposition() {
       // SetUp
       // Exercise
-      Throwable exception = catchThrowable(() -> and());
+      Throwable exception = catchThrowable(() -> Proposition.and());
       // Verify
       assertThat(exception)
           .extracting(IllegalArgumentException.class::cast)
@@ -75,7 +71,7 @@ class PropositionTest {
     void disjunction_all_true() {
       // SetUp
       Proposition target =
-          or(
+          Proposition.or(
               () -> true,
               () -> 1 == 2 - 1);
       // Exercise
@@ -88,7 +84,7 @@ class PropositionTest {
     void disjunction_contains_false() {
       // SetUp
       Proposition target =
-          or(
+          Proposition.or(
               () -> true,
               () -> 1 > 2);
       // Exercise
@@ -101,7 +97,7 @@ class PropositionTest {
     void disjunction_all_false() {
       // SetUp
       Proposition target =
-          or(
+          Proposition.or(
               () -> false,
               () -> 1 > 2);
       // Exercise
@@ -115,7 +111,7 @@ class PropositionTest {
     void no_proposition() {
       // SetUp
       // Exercise
-      Throwable exception = catchThrowable(() -> or());
+      Throwable exception = catchThrowable(() -> Proposition.or());
       // Verify
       assertThat(exception)
           .extracting(IllegalArgumentException.class::cast)
@@ -130,7 +126,7 @@ class PropositionTest {
     void satisfied() {
       // SetUp
       Predicate<Integer> is2 = x -> x == 2;
-      Proposition target = predicate(is2).satisfiedBy(1 + 1);
+      Proposition target = Proposition.predicate(is2).satisfiedBy(1 + 1);
       // Exercise
       boolean actual = target.test();
       // Verify
@@ -141,7 +137,7 @@ class PropositionTest {
     void not_satisfied() {
       // SetUp
       Predicate<Integer> is2 = x -> x == 3;
-      Proposition target = predicate(is2).satisfiedBy(1 + 1);
+      Proposition target = Proposition.predicate(is2).satisfiedBy(1 + 1);
       // Exercise
       boolean actual = target.test();
       // Verify
@@ -154,7 +150,7 @@ class PropositionTest {
     @Test
     void satisfied() {
       // SetUp
-      Proposition target = subject(1 + 1).satisfies(x -> x == 2);
+      Proposition target = Proposition.subject(1 + 1).satisfies(x -> x == 2);
       // Exercise
       boolean actual = target.test();
       // Verify
@@ -164,7 +160,7 @@ class PropositionTest {
     @Test
     void not_satisfied() {
       // SetUp
-      Proposition target = subject(1 + 1).satisfies(x -> x == 3);
+      Proposition target = Proposition.subject(1 + 1).satisfies(x -> x == 3);
       // Exercise
       boolean actual = target.test();
       // Verify
@@ -177,7 +173,7 @@ class PropositionTest {
     @Test
     void satisfied() {
       // SetUp
-      Proposition target = subject(1 + 1).satisfies(x -> x == 2);
+      Proposition target = Proposition.subject(1 + 1).satisfies(x -> x == 2);
       // Exercise
       boolean actual =
           Stream
@@ -193,7 +189,7 @@ class PropositionTest {
     @Test
     void not_satisfied() {
       // SetUp
-      Proposition target = subject(1 + 1).satisfies(x -> x == 3);
+      Proposition target = Proposition.subject(1 + 1).satisfies(x -> x == 3);
 
       // Exercise
       boolean actual =
@@ -272,7 +268,7 @@ class PropositionTest {
       // SetUp
       Predicate<Integer> lessThan10 = x -> x < 10;
       // Exercise
-      Proposition target = and(IntStream.range(0, 5).boxed().map(predicate(lessThan10)).toArray(Proposition[]::new));
+      Proposition target = Proposition.and(IntStream.range(0, 5).boxed().map(Proposition.predicate(lessThan10)).toArray(Proposition[]::new));
       // Verify
       assertThat(target.test()).isTrue();
     }
@@ -282,7 +278,7 @@ class PropositionTest {
       // SetUp
       Predicate<Integer> lessThan10 = x -> x < 10;
       // Exercise
-      Proposition target = and(IntStream.range(0, 5).boxed().map(Proposition::subject).map(f -> f.apply(lessThan10)).toArray(Proposition[]::new));
+      Proposition target = Proposition.and(IntStream.range(0, 5).boxed().map(Proposition::subject).map(f -> f.apply(lessThan10)).toArray(Proposition[]::new));
       // Verify
       assertThat(target.test()).isTrue();
     }

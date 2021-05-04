@@ -1,8 +1,7 @@
-package com.github.lambig.funcifextension.function;
+package io.github.lambig.funcifextension.function;
 
-import static com.github.lambig.funcifextension.function.Functions.applyTo;
-import static com.github.lambig.funcifextension.function.Functions.compositionOf;
-import static com.github.lambig.funcifextension.function.Functions.sequenceOf;
+import static io.github.lambig.funcifextension.function.Functions.compositionOf;
+import static io.github.lambig.funcifextension.function.Functions.sequenceOf;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,7 +23,7 @@ class FunctionsTest {
       Function<String, Integer> parseInt = Integer::parseInt;
       Function<Integer, String> toString = String::valueOf;
       Function<? super Integer, ? extends String> target =
-          sequenceOf(
+          Functions.sequenceOf(
               toString,
               parseInt,
               i -> i * 2,
@@ -47,7 +46,7 @@ class FunctionsTest {
       Function<String, Integer> parseInt = Integer::parseInt;
       Function<Integer, String> toString = String::valueOf;
       Function<? super Integer, ? extends String> target =
-          compositionOf(
+          Functions.compositionOf(
               toString,
               parseInt,
               toString,
@@ -77,7 +76,7 @@ class FunctionsTest {
                   x -> x + 5,
                   x -> x + 6);
       //Exercise
-      List<Integer> actual = functions.map(applyTo(1)).collect(toList());
+      List<Integer> actual = functions.map(Functions.applyTo(1)).collect(toList());
       //Verify
       assertThat(actual).containsExactly(2, 3, 4, 5, 6, 7);
     }

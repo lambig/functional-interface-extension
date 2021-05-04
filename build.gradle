@@ -1,9 +1,12 @@
 plugins {
-    id 'java'
+    id 'java-library'
+    id 'maven'
+    id 'signing'
 }
 
-group 'org.example'
-version '1.0-SNAPSHOT'
+group = 'io.github.lambig'
+archivesBaseName = 'functional-interface-extension'
+version = '1.0.0'
 
 sourceCompatibility = 1.8
 
@@ -24,11 +27,70 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
-tasks.withType(JavaCompile){
+tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier.set('javadoc')
+}
+
+task sourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    sign configurations.archives
 }
 
 test {
     useJUnitPlatform()
-    test.outputs.upToDateWhen {false}
+    test.outputs.upToDateWhen { false }
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.project {
+                name 'Functional Interface Extension'
+                packaging 'jar'
+                description 'Java 8+ Functional Interface Extension'
+                url 'https://github.com/lambig/functional-interface-extension'
+
+                scm {
+                    connection 'scm:git:https://github.com/lambig/functional-interface-extension'
+                    url 'https://github.com/lambig/functional-interface-extension'
+                }
+
+                licenses {
+                    license {
+                        name 'MIT License'
+                        url 'https://opensource.org/licenses/MIT'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'lambig'
+                        email 'ceolnua51@gmail.com'
+                    }
+                }
+            }
+        }
+    }
 }

@@ -1,4 +1,4 @@
-package com.github.lambig.funcifextension.predicate;
+package io.github.lambig.funcifextension.predicate;
 
 import java.util.Arrays;
 import java.util.function.Predicate;
