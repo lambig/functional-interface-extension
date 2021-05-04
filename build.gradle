@@ -44,53 +44,53 @@ artifacts {
     archives javadocJar, sourcesJar
 }
 
-signing {
-    sign configurations.archives
-}
-
 test {
     useJUnitPlatform()
     test.outputs.upToDateWhen { false }
 }
 
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-            repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
-
-            snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
-
-            pom.project {
-                name 'Functional Interface Extension'
-                packaging 'jar'
-                description 'Java 8+ Functional Interface Extension'
-                url 'https://github.com/lambig/functional-interface-extension'
-
-                scm {
-                    connection 'scm:git:https://github.com/lambig/functional-interface-extension'
-                    url 'https://github.com/lambig/functional-interface-extension'
-                }
-
-                licenses {
-                    license {
-                        name 'MIT License'
-                        url 'https://opensource.org/licenses/MIT'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id 'lambig'
-                        email 'ceolnua51@gmail.com'
-                    }
-                }
-            }
-        }
-    }
-}
+//signing {
+//    sign configurations.archives
+//}
+//
+//uploadArchives {
+//    repositories {
+//        mavenDeployer {
+//            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+//
+//            repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+//                authentication(userName: ossrhUsername, password: ossrhPassword)
+//            }
+//
+//            snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+//                authentication(userName: ossrhUsername, password: ossrhPassword)
+//            }
+//
+//            pom.project {
+//                name 'Functional Interface Extension'
+//                packaging 'jar'
+//                description 'Java 8+ Functional Interface Extension'
+//                url 'https://github.com/lambig/functional-interface-extension'
+//
+//                scm {
+//                    connection 'scm:git:https://github.com/lambig/functional-interface-extension'
+//                    url 'https://github.com/lambig/functional-interface-extension'
+//                }
+//
+//                licenses {
+//                    license {
+//                        name 'MIT License'
+//                        url 'https://opensource.org/licenses/MIT'
+//                    }
+//                }
+//
+//                developers {
+//                    developer {
+//                        id 'lambig'
+//                        email 'ceolnua51@gmail.com'
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
