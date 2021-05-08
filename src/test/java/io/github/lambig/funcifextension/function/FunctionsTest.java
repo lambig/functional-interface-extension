@@ -1,7 +1,5 @@
 package io.github.lambig.funcifextension.function;
 
-import static io.github.lambig.funcifextension.function.Functions.compositionOf;
-import static io.github.lambig.funcifextension.function.Functions.sequenceOf;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
