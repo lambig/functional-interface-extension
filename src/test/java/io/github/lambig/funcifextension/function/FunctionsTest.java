@@ -1,5 +1,7 @@
 package io.github.lambig.funcifextension.function;
 
+import static io.github.lambig.funcifextension.function.Functions.compositionOf;
+import static io.github.lambig.funcifextension.function.Functions.sequenceOf;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,19 +22,22 @@ class FunctionsTest {
       // SetUp
       Function<String, Integer> parseInt = Integer::parseInt;
       Function<Integer, String> toString = String::valueOf;
-      Function<? super Integer, ? extends String> target =
-          Functions.sequenceOf(
-              toString,
-              parseInt,
-              i -> i * 2,
-              i -> i + 1,
-              toString,
-              parseInt,
-              toString);
       //Exercise
-      String actual = Optional.of(11).map(target).get();
+      int actual =
+          Optional.of(11)
+              .map(
+                  sequenceOf(
+                      toString,
+                      parseInt,
+                      i -> i * 2,
+                      i -> i + 1,
+                      toString,
+                      parseInt,
+                      toString))
+              .map(parseInt)
+              .get();
       //Verify
-      assertThat(actual).isEqualTo("23");
+      assertThat(actual).isEqualTo(23);
     }
   }
 
@@ -43,17 +48,19 @@ class FunctionsTest {
       // SetUp
       Function<String, Integer> parseInt = Integer::parseInt;
       Function<Integer, String> toString = String::valueOf;
-      Function<? super Integer, ? extends String> target =
-          Functions.compositionOf(
-              toString,
-              parseInt,
-              toString,
-              i -> i * 2,
-              i -> i + 1,
-              parseInt,
-              toString);
       //Exercise
-      String actual = Optional.of(11).map(target).get();
+      String actual =
+          Optional.of(11)
+              .map(
+                  compositionOf(
+                      toString,
+                      parseInt,
+                      toString,
+                      i -> i * 2,
+                      i -> i + 1,
+                      parseInt,
+                      toString))
+              .get();
       //Verify
       assertThat(actual).isEqualTo("24");
     }
