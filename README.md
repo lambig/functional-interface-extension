@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/lambig/functional-interface-extension.svg?branch=main)](https://travis-ci.org/lambig/functional-interface-extension)
+[![CI](https://github.com/lambig/functional-interface-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/lambig/functional-interface-extension/actions/workflows/ci.yml)
 # functional-interface-extension
 *  TriFunction
 *  TriPredicate
