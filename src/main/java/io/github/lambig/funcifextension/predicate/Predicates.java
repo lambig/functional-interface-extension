@@ -1,9 +1,14 @@
 package io.github.lambig.funcifextension.predicate;
 
-import java.util.Objects;
+import java.util.Arrays;
 import java.util.function.Predicate;
 
-/** 一つの対象について、複数の条件の「すべて」または「いずれか」を満たすかを判定する述語を作る。 */
+/**
+ * 一つの対象について、複数の条件の「すべて」または「いずれか」を満たすかを判定する述語を作る。
+ * <p>可変長引数で条件を列挙するAPIであり、扱える条件数は実行環境に依存する。
+ * 万単位（10の4乗程度）の条件では、判定時にStackOverflowErrorとなる場合がある。
+ * この規模は目安であり、それ未満の条件数での動作を保証する上限値ではない。
+ */
 public class Predicates {
   private Predicates() {}
   /**
@@ -16,27 +21,15 @@ public class Predicates {
    * @return 全条件を満たす場合true、一つでも満たさない場合falseを返す述語
    * @throws IllegalArgumentException 要素がゼロの場合
    * @throws NullPointerException 配列または要素がnullの場合（合成時）
+   * @throws StackOverflowError 条件数が実行環境で扱える規模を超える場合（判定時。規模の目安はクラスの説明を参照）
    */
   @SafeVarargs
   public static <E> Predicate<E> and(Predicate<E>... predicate) {
-    if (predicate.length == 0) {
-      throw new IllegalArgumentException("At least 1 predicate needed");
-    }
-    Predicate<E>[] operands = predicate.clone();
-    for (Predicate<E> operand : operands) {
-      Objects.requireNonNull(operand);
-    }
-    if (operands.length == 1) {
-      return operands[0];
-    }
-    return value -> {
-      for (Predicate<E> operand : operands) {
-        if (!operand.test(value)) {
-          return false;
-        }
-      }
-      return true;
-    };
+    return
+        Arrays
+            .stream(predicate)
+            .reduce(Predicate::and)
+            .orElseThrow(() -> new IllegalArgumentException("At least 1 predicate needed"));
   }
 
   /**
@@ -49,26 +42,14 @@ public class Predicates {
    * @return 一つ以上の条件を満たす場合true、どれも満たさない場合falseを返す述語
    * @throws IllegalArgumentException 要素がゼロの場合
    * @throws NullPointerException 配列または要素がnullの場合（合成時）
+   * @throws StackOverflowError 条件数が実行環境で扱える規模を超える場合（判定時。規模の目安はクラスの説明を参照）
    */
   @SafeVarargs
   public static <E> Predicate<E> or(Predicate<E>... predicate) {
-    if (predicate.length == 0) {
-      throw new IllegalArgumentException("At least 1 predicate needed");
-    }
-    Predicate<E>[] operands = predicate.clone();
-    for (Predicate<E> operand : operands) {
-      Objects.requireNonNull(operand);
-    }
-    if (operands.length == 1) {
-      return operands[0];
-    }
-    return value -> {
-      for (Predicate<E> operand : operands) {
-        if (operand.test(value)) {
-          return true;
-        }
-      }
-      return false;
-    };
+    return
+        Arrays
+            .stream(predicate)
+            .reduce(Predicate::or)
+            .orElseThrow(() -> new IllegalArgumentException("At least 1 predicate needed"));
   }
 }

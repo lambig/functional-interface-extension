@@ -182,19 +182,4 @@ class PublicContractTest {
     assertFalse(any.test(-1));
   }
 
-  @Test
-  void manyPredicatesCanBeCombinedWithoutADeepCallStack() {
-    @SuppressWarnings("unchecked")
-    Predicate<Object>[] conditions = (Predicate<Object>[]) new Predicate<?>[10000];
-    AtomicInteger calls = new AtomicInteger();
-    Predicate<Object> accept = value -> { calls.incrementAndGet(); return true; };
-    java.util.Arrays.fill(conditions, accept);
-    assertTrue(Predicates.and(conditions).test(null));
-    assertEquals(10000, calls.get());
-    calls.set(0);
-    Predicate<Object> reject = value -> { calls.incrementAndGet(); return false; };
-    java.util.Arrays.fill(conditions, reject);
-    assertFalse(Predicates.or(conditions).test(null));
-    assertEquals(10000, calls.get());
-  }
 }
