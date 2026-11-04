@@ -82,6 +82,11 @@ import java.util.function.Predicate;
 Function<String, Integer> quantity = Functions.sequenceOf(String::trim, Integer::parseInt);
 int count = quantity.apply(" 3 "); // 3: 前後の空白を除いた文字列を数量にする
 
+Function<Integer, Integer> plusOne = n -> n + 1;
+Function<Integer, Integer> twice = n -> n * 2;
+int sequential = Functions.sequenceOf(plusOne, twice).apply(3); // 8: (3 + 1) * 2
+int composed = Functions.compositionOf(plusOne, twice).apply(3); // 7: (3 * 2) + 1
+
 Predicate<String> threeCharacters = By.having(String::length).thatEqualsTo(3);
 Predicate<String> startsWithA = text -> text.startsWith("a");
 Predicate<String> matching = Predicates.and(threeCharacters, startsWithA);
@@ -113,16 +118,20 @@ boolean accepted = matching.test("abc"); // true: 3文字で、aから始まる
 | `Proposition.and(...)` / `or(...)` | 全命題／少なくとも一命題が成り立つという命題 |
 | 命題の `and(next)` / `or(next)` | この命題とnextの「かつ」／「または」 |
 | `Proposition.test()` / `get()` | 命題の真偽。getはSupplierとして利用できる |
-| `Proposition.toPredicate()` | 命題が成り立つときはすべての入力を受け入れる述語 |
+| `Proposition.toPredicate()` | 入力によらず、元の命題が成り立つ場合true、成り立たない場合falseを返す述語 |
 
 `By.That` と二つの `PropositionBuilder...` は `Function` としても使えます。
 それぞれの `apply` は `that` / `satisfiedBy` / `satisfies` と同じ結果を返します。
+
+`Predicates.and/or` は、渡された一つの対象に複数の条件を適用する述語です。
+`Proposition.and/or` は、それぞれの対象が既に決まった命題を組み合わせます。例えば「この注文は未払いである」と「この商品の在庫がある」を一つの命題にできます。
+`toPredicate()` に別の入力を渡しても、命題の対象は変わりません。
 
 ## 利用時の約束
 
 - 論理積はすべて真なら真、論理和は一つでも真なら真です。条件は指定順に判定し、結果が決まれば後の条件を判定しません。
 - 関数・述語が投げた実行時例外は呼出側へ伝わり、後の処理は実行しません。nullを対象にできるかは、指定する関数・述語の条件によります。
-- `Equals.to` では、両値がnullなら真、一方だけがnullなら偽です。配列は入れ子の配列も含めて内容を比較します。
+- `Equals.to` では、両値がnullなら真、一方だけがnullなら偽です。両値が配列なら入れ子の配列も含めて内容を比較し、その他の非null値では判定対象の `equals` による等価性を用います。
 - 合成する関数・述語・命題には有効な値を指定してください。`Predicates.and/or` と `Proposition.and/or` には一つ以上の条件が必要です。無効な引数の例外と発生時期は各APIのJavadocに記載しています。
 - 状態が変わる対象の命題や等価比較では、後の判定結果も変わり得ます。命題の合成に使った配列は作成後に変更しないでください。並行利用できるかは対象と関数の契約によります。
 

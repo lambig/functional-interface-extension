@@ -38,6 +38,10 @@ public final class OrderExample {
         "値を先に指定する変換");
     Function<String, Integer> composed = Functions.compositionOf(Integer::parseInt, String::trim);
     require(composed.apply(" 3 ") == count, "右から左への合成");
+    Function<Integer, Integer> plusOne = n -> n + 1;
+    Function<Integer, Integer> twice = n -> n * 2;
+    require(Functions.sequenceOf(plusOne, twice).apply(3) == 8, "(3 + 1) * 2 = 8");
+    require(Functions.compositionOf(plusOne, twice).apply(3) == 7, "(3 * 2) + 1 = 7");
 
     Order order = new Order("pending", amount);
     Predicate<Order> pending = By.having((Order o) -> o.status).thatEqualsTo("pending");

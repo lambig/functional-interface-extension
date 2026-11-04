@@ -12,7 +12,7 @@ public class Predicates {
    * 判定中の例外は呼出側へ伝わり、後の条件は判定しない。
    * @param <E> 入力の型
    * @param predicate 一つ以上のnullでない述語。入力値のnull許容は各述語による
-   * @return 全条件がtrueの場合にtrueを返す述語
+   * @return 全条件を満たす場合true、一つでも満たさない場合falseを返す述語
    * @throws IllegalArgumentException 要素がゼロの場合
    * @throws NullPointerException 配列または要素がnullの場合（合成時）
    */
@@ -31,7 +31,7 @@ public class Predicates {
    * 判定中の例外は呼出側へ伝わり、後の条件は判定しない。
    * @param <E> 入力の型
    * @param predicate 一つ以上のnullでない述語。入力値のnull許容は各述語による
-   * @return 一つ以上の条件がtrueの場合にtrueを返す述語
+   * @return 一つ以上の条件を満たす場合true、どれも満たさない場合falseを返す述語
    * @throws IllegalArgumentException 要素がゼロの場合
    * @throws NullPointerException 配列または要素がnullの場合（合成時）
    */

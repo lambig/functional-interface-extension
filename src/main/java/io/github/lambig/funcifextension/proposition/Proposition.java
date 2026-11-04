@@ -29,7 +29,8 @@ import java.util.function.Supplier;
 public interface Proposition extends Supplier<Boolean> {
   /**
    * この命題が成り立つかを判定する。
-   * @return 現時点で命題が成立する場合true。評価中の例外は呼出側へ伝播する
+   * 判定中の実行時例外は呼出側へ伝わる。
+   * @return 判定時点でこの命題が成り立つ場合true、成り立たない場合false
    */
   boolean test();
 
@@ -37,8 +38,8 @@ public interface Proposition extends Supplier<Boolean> {
    * 指定した命題がすべて成り立つ、という命題（論理積）を返す。
    * 判定は引数順に行い、falseになった後の命題は判定しない。
    * 作成後は引数の配列を変更しないこと。
-   * @param propositions 一つ以上の命題。null要素はその要素を評価した時点で例外になる
-   * @return すべてがtrueの場合にtrueとなる命題
+   * @param propositions 一つ以上の命題。null要素はその要素の判定時にNullPointerExceptionとなる
+   * @return 全命題が成り立つ場合true、一つでも成り立たない場合falseとなる命題
    * @throws IllegalArgumentException 配列が空の場合
    * @throws NullPointerException 配列がnullの場合（組立て時）
    */
@@ -53,8 +54,8 @@ public interface Proposition extends Supplier<Boolean> {
    * 指定した命題の少なくとも一つが成り立つ、という命題（論理和）を返す。
    * 判定は引数順に行い、trueになった後の命題は判定しない。
    * 作成後は引数の配列を変更しないこと。
-   * @param propositions 一つ以上の命題。null要素はその要素を評価した時点で例外になる
-   * @return 一つ以上がtrueの場合にtrueとなる命題
+   * @param propositions 一つ以上の命題。null要素はその要素の判定時にNullPointerExceptionとなる
+   * @return 一つ以上が成り立つ場合true、どれも成り立たない場合falseとなる命題
    * @throws IllegalArgumentException 配列が空の場合
    * @throws NullPointerException 配列がnullの場合（組立て時）
    */
@@ -89,7 +90,7 @@ public interface Proposition extends Supplier<Boolean> {
 
   /**
    * 命題の真偽を{@link Supplier}として取得する。
-   * @return 判定時点でこの命題が成り立つ場合true
+   * @return 判定時点でこの命題が成り立つ場合Boolean.TRUE、成り立たない場合Boolean.FALSE
    */
   @Override
   default Boolean get() {
@@ -98,7 +99,8 @@ public interface Proposition extends Supplier<Boolean> {
 
   /**
    * この命題の真偽を、入力によらない条件として利用できる述語を返す。
-   * 例えば、命題が成り立つ間だけすべての入力を通す条件として利用できる。
+   * 命題が成り立つときはどの入力にもtrue、成り立たないときはどの入力にもfalseを返す。
+   * 対象を入力に置き換える操作ではなく、元の命題について判定する。
    * @param <E> 返す述語の入力型
    * @return 入力に関係なく、判定時点のこの命題の真偽を返す述語（null入力も同様）
    */
@@ -139,7 +141,8 @@ public interface Proposition extends Supplier<Boolean> {
     Proposition satisfiedBy(S subject);
 
     /**
-     * {@link #satisfiedBy(Object)}と同じ命題を、Functionの操作名で作る。
+     * sがこの述語を満たす、という命題を返す。
+     * {@link #satisfiedBy(Object)}と同じ結果を、Functionとして利用できる。
      * @param s 対象
      * @return 指定した対象についての命題
      */
@@ -156,13 +159,14 @@ public interface Proposition extends Supplier<Boolean> {
   interface PropositionBuilderFromSubject<S> extends Function<Predicate<S>, Proposition> {
     /**
      * この対象がpredicateを満たす、という命題を返す。
-     * @param predicate 述語。subjectで生成した組立て関数ではnullは命題の評価時に例外
+     * @param predicate 述語。subjectで生成した関数へnullを渡すと、命題のtest/get時にNullPointerExceptionとなる
      * @return 指定した条件についての命題。真偽はtest/getで判定する
      */
     Proposition satisfies(Predicate<S> predicate);
 
     /**
-     * {@link #satisfies(Predicate)}と同じ命題を、Functionの操作名で作る。
+     * この対象が述語sを満たす、という命題を返す。
+     * {@link #satisfies(Predicate)}と同じ結果を、Functionとして利用できる。
      * @param s 述語
      * @return 指定した条件についての命題
      */
