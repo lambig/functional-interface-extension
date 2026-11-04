@@ -45,10 +45,10 @@ public interface Proposition extends Supplier<Boolean> {
    * @throws NullPointerException 配列がnullの場合（組立て時）
    */
   static Proposition and(Proposition... propositions) {
-    if (propositions.length == 0) {
+    Proposition[] operands = propositions.clone();
+    if (operands.length == 0) {
       throw new IllegalArgumentException("At least 1 proposition needed");
     }
-    Proposition[] operands = propositions.clone();
     return () -> Arrays.stream(operands).allMatch(Proposition::test);
   }
 
@@ -63,10 +63,10 @@ public interface Proposition extends Supplier<Boolean> {
    * @throws NullPointerException 配列がnullの場合（組立て時）
    */
   static Proposition or(Proposition... propositions) {
-    if (propositions.length == 0) {
+    Proposition[] operands = propositions.clone();
+    if (operands.length == 0) {
       throw new IllegalArgumentException("At least 1 proposition needed");
     }
-    Proposition[] operands = propositions.clone();
     return () -> Arrays.stream(operands).anyMatch(Proposition::test);
   }
 
