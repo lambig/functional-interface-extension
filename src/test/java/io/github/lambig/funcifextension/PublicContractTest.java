@@ -63,6 +63,8 @@ class PublicContractTest {
     Predicate<Object> fail = v -> { throw failure; };
     assertSame(failure, assertThrows(IllegalStateException.class,
         () -> Predicates.and(fail, counted).test(null)));
+    assertSame(failure, assertThrows(IllegalStateException.class,
+        () -> Predicates.or(fail, counted).test(null)));
     assertEquals(0, calls.get());
   }
 
@@ -91,10 +93,11 @@ class PublicContractTest {
     assertTrue(current.toPredicate().test(null));
     assertTrue(Proposition.predicate((Object o) -> o == null).apply(null).test());
     assertTrue(Proposition.subject(state).apply(n -> n.get() == 1).test());
-    Proposition[] terms = {() -> false, null};
+    AtomicInteger gate = new AtomicInteger();
+    Proposition[] terms = {() -> gate.get() > 0, null};
     Proposition all = Proposition.and(terms);
     assertFalse(all.test());
-    terms[0] = () -> true;
+    gate.incrementAndGet();
     assertThrows(NullPointerException.class, all::test);
     assertTrue(Proposition.or(new Proposition[] {() -> true, null}).test());
     Proposition invalid = Proposition.<Object>predicate(null).satisfiedBy(null);
@@ -102,5 +105,96 @@ class PublicContractTest {
     assertThrows(IllegalArgumentException.class, () -> Proposition.and(new Proposition[0]));
     assertThrows(IllegalArgumentException.class, () -> Proposition.or(new Proposition[0]));
     assertThrows(NullPointerException.class, () -> Proposition.and((Proposition[]) null));
+  }
+
+  @Test
+  void conjunctionKeepsItsOperandsWhenTheCallerReusesTheArray() {
+    Proposition[] terms = {() -> true, () -> true};
+    Proposition all = Proposition.and(terms);
+    terms[0] = null;
+    terms[1] = () -> false;
+    assertTrue(all.test());
+    java.util.Arrays.fill(terms, null);
+    assertTrue(all.get());
+  }
+
+  @Test
+  void disjunctionKeepsItsOperandsWhenTheCallerReusesTheArray() {
+    Proposition[] terms = {() -> false, () -> false};
+    Proposition any = Proposition.or(terms);
+    terms[0] = () -> true;
+    terms[1] = null;
+    assertFalse(any.test());
+    java.util.Arrays.fill(terms, null);
+    assertFalse(any.get());
+  }
+
+  @Test
+  void compositionKeepsThePropositionsLiveAndShortCircuitsInTheOriginalOrder() {
+    AtomicInteger state = new AtomicInteger();
+    AtomicInteger laterCalls = new AtomicInteger();
+    Proposition positive = Proposition.subject(state).satisfies(n -> n.get() > 0);
+    Proposition later = () -> { laterCalls.incrementAndGet(); return true; };
+    Proposition all = Proposition.and(positive, later);
+    Proposition any = Proposition.or(positive, later);
+    assertFalse(all.test());
+    assertEquals(0, laterCalls.get());
+    state.set(1);
+    assertTrue(all.test());
+    assertEquals(1, laterCalls.get());
+    assertTrue(any.test());
+    assertEquals(1, laterCalls.get());
+    state.set(0);
+    assertTrue(any.test());
+    assertEquals(2, laterCalls.get());
+  }
+
+  @Test
+  void copyingTheOperandArrayPreservesLazyNullFailuresAndOriginalExceptions() {
+    Proposition[] terms = {() -> false, null};
+    Proposition any = Proposition.or(terms);
+    terms[1] = () -> true;
+    assertThrows(NullPointerException.class, any::test);
+    assertTrue(Proposition.or(new Proposition[] {() -> true, null}).test());
+    assertFalse(Proposition.and(new Proposition[] {() -> false, null}).test());
+    IllegalStateException failure = new IllegalStateException("fixture");
+    Proposition fail = () -> { throw failure; };
+    assertSame(failure, assertThrows(IllegalStateException.class,
+        () -> Proposition.and(() -> true, fail).test()));
+    assertSame(failure, assertThrows(IllegalStateException.class,
+        () -> Proposition.or(() -> false, fail).test()));
+    assertThrows(NullPointerException.class, () -> Proposition.or((Proposition[]) null));
+  }
+
+  @Test
+  void predicateCompositionAlreadyKeepsItsSelectedConditions() {
+    @SuppressWarnings("unchecked")
+    Predicate<Integer>[] conditions = (Predicate<Integer>[]) new Predicate<?>[2];
+    conditions[0] = n -> n > 0;
+    conditions[1] = n -> n % 2 == 0;
+    Predicate<Integer> all = Predicates.and(conditions);
+    Predicate<Integer> any = Predicates.or(conditions);
+    conditions[0] = null;
+    conditions[1] = n -> false;
+    assertTrue(all.test(2));
+    assertFalse(all.test(1));
+    assertTrue(any.test(1));
+    assertFalse(any.test(-1));
+  }
+
+  @Test
+  void manyPredicatesCanBeCombinedWithoutADeepCallStack() {
+    @SuppressWarnings("unchecked")
+    Predicate<Object>[] conditions = (Predicate<Object>[]) new Predicate<?>[10000];
+    AtomicInteger calls = new AtomicInteger();
+    Predicate<Object> accept = value -> { calls.incrementAndGet(); return true; };
+    java.util.Arrays.fill(conditions, accept);
+    assertTrue(Predicates.and(conditions).test(null));
+    assertEquals(10000, calls.get());
+    calls.set(0);
+    Predicate<Object> reject = value -> { calls.incrementAndGet(); return false; };
+    java.util.Arrays.fill(conditions, reject);
+    assertFalse(Predicates.or(conditions).test(null));
+    assertEquals(10000, calls.get());
   }
 }

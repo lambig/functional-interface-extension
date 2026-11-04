@@ -37,7 +37,8 @@ public interface Proposition extends Supplier<Boolean> {
   /**
    * 指定した命題がすべて成り立つ、という命題（論理積）を返す。
    * 判定は引数順に行い、falseになった後の命題は判定しない。
-   * 作成後は引数の配列を変更しないこと。
+   * 作成時に指定した命題の組合せを保持する。呼出後に元の配列の要素を変更しても、組合せは変わらない。
+   * 各命題の真偽は、その命題の判定時点の状態に応じて決まる。
    * @param propositions 一つ以上の命題。null要素はその要素の判定時にNullPointerExceptionとなる
    * @return 全命題が成り立つ場合true、一つでも成り立たない場合falseとなる命題
    * @throws IllegalArgumentException 配列が空の場合
@@ -47,13 +48,15 @@ public interface Proposition extends Supplier<Boolean> {
     if (propositions.length == 0) {
       throw new IllegalArgumentException("At least 1 proposition needed");
     }
-    return () -> Arrays.stream(propositions).allMatch(Proposition::test);
+    Proposition[] operands = propositions.clone();
+    return () -> Arrays.stream(operands).allMatch(Proposition::test);
   }
 
   /**
    * 指定した命題の少なくとも一つが成り立つ、という命題（論理和）を返す。
    * 判定は引数順に行い、trueになった後の命題は判定しない。
-   * 作成後は引数の配列を変更しないこと。
+   * 作成時に指定した命題の組合せを保持する。呼出後に元の配列の要素を変更しても、組合せは変わらない。
+   * 各命題の真偽は、その命題の判定時点の状態に応じて決まる。
    * @param propositions 一つ以上の命題。null要素はその要素の判定時にNullPointerExceptionとなる
    * @return 一つ以上が成り立つ場合true、どれも成り立たない場合falseとなる命題
    * @throws IllegalArgumentException 配列が空の場合
@@ -63,7 +66,8 @@ public interface Proposition extends Supplier<Boolean> {
     if (propositions.length == 0) {
       throw new IllegalArgumentException("At least 1 proposition needed");
     }
-    return () -> Arrays.stream(propositions).anyMatch(Proposition::test);
+    Proposition[] operands = propositions.clone();
+    return () -> Arrays.stream(operands).anyMatch(Proposition::test);
   }
 
   /**
