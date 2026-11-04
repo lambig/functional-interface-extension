@@ -1,0 +1,47 @@
+#!/bin/sh
+# 候補POM/JARから独立した利用プロジェクトを組み立てる。
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$root"
+mode=${1:-candidate}
+version=${2:-1.1.3}
+case "$mode" in candidate|public) ;; *) echo 'Usage: verify-consumers.sh [candidate|public] [version]' >&2; exit 2;; esac
+results="$root/build/consumer-results/$mode"
+mkdir -p "$results"
+java_runtime="${TEST_JAVA_HOME:-$JAVA_HOME}/bin/java"
+repository="$root/build/repository"
+if [ "$mode" = candidate ]; then
+    sh ./gradlew --no-daemon --console=plain check publishMavenJavaPublicationToCandidateRepository > "$results/library.log" 2>&1
+    python3 .github/scripts/check-documentation.py > "$results/documentation.log"
+    python3 .github/scripts/check-compatibility.py \
+        "$repository/io/github/lambig/functional-interface-extension/$version/functional-interface-extension-$version.jar" \
+        > "$results/compatibility.log" 2>&1
+fi
+# 毎回空のキャッシュを作り、mavenLocalやプロジェクト置換を利用しない。
+cache=$(mktemp -d)
+trap 'rm -rf "$cache"' EXIT HUP INT TERM
+if [ "$mode" = candidate ]; then
+    set -- "-PcandidateRepository=$repository"
+else
+    set --
+fi
+GRADLE_USER_HOME="$cache/gradle" sh ./gradlew -p example --no-daemon --console=plain \
+    "-PlibraryVersion=$version" "$@" clean runExample > "$results/gradle.log" 2>&1
+if [ "$mode" = candidate ]; then
+    set -- "-DcandidateRepository=file://$repository"
+else
+    set --
+fi
+mvn -B -ntp -f example/pom.xml "-Dmaven.repo.local=$cache/maven" \
+    "-DlibraryVersion=$version" "$@" clean compile dependency:build-classpath \
+    -Dmdep.outputFile=target/runtime-classpath.txt > "$results/maven.log" 2>&1
+classpath=$(cat example/target/runtime-classpath.txt)
+case "$classpath" in *:*) echo 'Unexpected transitive runtime dependency' >&2; exit 1;; esac
+test "$(basename "$classpath")" = "functional-interface-extension-$version.jar"
+if [ "$mode" = candidate ]; then
+    python3 -c 'import filecmp, sys; assert filecmp.cmp(sys.argv[1], sys.argv[2], shallow=False)' \
+        "$classpath" "$repository/io/github/lambig/functional-interface-extension/$version/functional-interface-extension-$version.jar"
+fi
+"$java_runtime" -cp "example/target/classes:$classpath" example.OrderExample >> "$results/maven.log" 2>&1
+grep 'subtotal=1000; pending-before=true; pending-after=false; OK' "$results/gradle.log" "$results/maven.log"
+echo "Consumer verification passed: $mode $version"
