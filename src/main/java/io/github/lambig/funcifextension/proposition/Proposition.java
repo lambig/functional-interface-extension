@@ -6,23 +6,39 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
- * 対象を捕捉した遅延判定。test/getの呼出しごとに再評価し、結果をキャッシュしない。
- * 対象は参照として保持するため、可変対象の変更は後の評価へ反映される。
- * スレッド安全性は捕捉した対象と述語に依存する。
+ * 真か偽かを判定できる「命題」を表す。
+ * {@link Predicate}（述語）が「xは正の整数である」のような対象xについての条件を表すのに対し、
+ * Propositionは「3は正の整数である」のように対象が定まった主張を表す。
+ * 述語には{@code test(x)}で対象を渡し、命題には引数なしの{@link #test()}で真偽を問い合わせる。
+ *
+ * <pre>{@code
+ * Predicate<Integer> positive = n -> n > 0; // xは正の整数である
+ * Proposition threeIsPositive = Proposition.subject(3).satisfies(positive);
+ * boolean result = threeIsPositive.test(); // 「3は正の整数である」はtrue
+ * }</pre>
+ *
+ * <p>対象と述語から命題を作るほか、ラムダ式で命題を直接表したり、
+ * {@link #and(Proposition)}・{@link #or(Proposition)}で「かつ」「または」の主張を作ったりできる。
+ * 条件の対象を決める場所と、その真偽を問い合わせる場所を分けたいときに使う。
+ *
+ * <p>このAPIは判定時点での真偽を返す。例えば「この注文は未払いである」という命題は、
+ * 注文の状態が変われば結果も変わり得る。作成時点の真偽を保存する値ではない。
+ * 複数スレッドから利用する場合、対象と述語がその利用方法に対応している必要がある。
  */
 @FunctionalInterface
 public interface Proposition extends Supplier<Boolean> {
   /**
-   * 捕捉した対象を現在の状態で評価する。
+   * この命題が成り立つかを判定する。
    * @return 現時点で命題が成立する場合true。評価中の例外は呼出側へ伝播する
    */
   boolean test();
 
   /**
-   * 引数順に評価し、最初のfalseでfalseを返す命題を組み立てる。
-   * 配列をコピーせず保持するため、組立て後は配列を変更しないこと。
+   * 指定した命題がすべて成り立つ、という命題（論理積）を返す。
+   * 判定は引数順に行い、falseになった後の命題は判定しない。
+   * 作成後は引数の配列を変更しないこと。
    * @param propositions 一つ以上の命題。null要素はその要素を評価した時点で例外になる
-   * @return 遅延評価される合成命題
+   * @return すべてがtrueの場合にtrueとなる命題
    * @throws IllegalArgumentException 配列が空の場合
    * @throws NullPointerException 配列がnullの場合（組立て時）
    */
@@ -34,10 +50,11 @@ public interface Proposition extends Supplier<Boolean> {
   }
 
   /**
-   * 引数順に評価し、最初のtrueでtrueを返す命題を組み立てる。
-   * 配列をコピーせず保持するため、組立て後は配列を変更しないこと。
+   * 指定した命題の少なくとも一つが成り立つ、という命題（論理和）を返す。
+   * 判定は引数順に行い、trueになった後の命題は判定しない。
+   * 作成後は引数の配列を変更しないこと。
    * @param propositions 一つ以上の命題。null要素はその要素を評価した時点で例外になる
-   * @return 遅延評価される合成命題
+   * @return 一つ以上がtrueの場合にtrueとなる命題
    * @throws IllegalArgumentException 配列が空の場合
    * @throws NullPointerException 配列がnullの場合（組立て時）
    */
@@ -49,74 +66,82 @@ public interface Proposition extends Supplier<Boolean> {
   }
 
   /**
-   * 述語を先に指定し、後から対象を指定する。
+   * 「xはこの条件を満たす」という述語から、対象を指定して命題を作れるようにする。
+   * 例えば{@code predicate(positive).satisfiedBy(3)}は「3は正である」を表す。
    * @param <E> 対象の型
    * @param predicate 判定する述語。nullは完成した命題の評価時にNullPointerException
-   * @return 対象を受け取る組立て関数
+   * @return 対象を指定すると、その対象が述語を満たすという命題を返す関数
    */
   static <E> PropositionBuilderFromPredicate<E> predicate(Predicate<E> predicate) {
     return subject -> () -> predicate.test(subject);
   }
 
   /**
-   * 対象を先に指定し、後から述語を指定する。
+   * 指定した対象について、条件を選んで命題を作れるようにする。
+   * 例えば{@code subject(3).satisfies(positive)}は「3は正である」を表す。
    * @param <E> 対象の型
    * @param subject 対象（null可）。評価時に述語へそのまま渡す
-   * @return 述語を受け取る組立て関数
+   * @return 述語を指定すると、この対象がその述語を満たすという命題を返す関数
    */
   static <E> PropositionBuilderFromSubject<E> subject(E subject) {
     return predicate -> () -> predicate.test(subject);
   }
 
-  /** @return test()をその都度呼び出した結果。キャッシュしない */
+  /**
+   * 命題の真偽を{@link Supplier}として取得する。
+   * @return 判定時点でこの命題が成り立つ場合true
+   */
   @Override
   default Boolean get() {
     return this.test();
   }
 
   /**
-   * 渡された入力を使用せず、この命題をその都度評価する述語に変換する。
+   * この命題の真偽を、入力によらない条件として利用できる述語を返す。
+   * 例えば、命題が成り立つ間だけすべての入力を通す条件として利用できる。
    * @param <E> 返す述語の入力型
-   * @return この命題を評価する述語（入力がnullでも同じ評価を行う）
+   * @return 入力に関係なく、判定時点のこの命題の真偽を返す述語（null入力も同様）
    */
   default <E> Predicate<E> toPredicate() {
     return anything -> this.test();
   }
 
   /**
-   * この命題とnextをこの順に論理積で合成する。
+   * この命題とnextがともに成り立つ、という命題を返す。
+   * この命題がfalseならnextは判定しない。
    * @param next 次の命題。短絡されず評価されたときにnullならNullPointerException
-   * @return 静的andと同じ短絡評価をする命題
+   * @return 二つの命題の論理積
    */
   default Proposition and(Proposition next) {
     return and(this, next);
   }
 
   /**
-   * この命題とnextをこの順に論理和で合成する。
+   * この命題とnextの少なくとも一方が成り立つ、という命題を返す。
+   * この命題がtrueならnextは判定しない。
    * @param next 次の命題。短絡されず評価されたときにnullならNullPointerException
-   * @return 静的orと同じ短絡評価をする命題
+   * @return 二つの命題の論理和
    */
   default Proposition or(Proposition next) {
     return or(this, next);
   }
 
   /**
-   * 述語に対象を結び付ける組立て関数。
+   * 一つの述語について、対象ごとの命題を作る関数。
    * @param <S> 対象の型
    */
   interface PropositionBuilderFromPredicate<S> extends Function<S, Proposition> {
     /**
-     * 述語に対象を結び付ける。
+     * subjectがこの述語を満たす、という命題を返す。
      * @param subject 対象。predicateで生成した組立て関数はnullをそのまま述語へ渡す
-     * @return 対象を捕捉した遅延命題
+     * @return 指定した対象についての命題。真偽はtest/getで判定する
      */
     Proposition satisfiedBy(S subject);
 
     /**
-     * satisfiedByへ委譲する。
+     * {@link #satisfiedBy(Object)}と同じ命題を、Functionの操作名で作る。
      * @param s 対象
-     * @return 対象を捕捉した命題
+     * @return 指定した対象についての命題
      */
     @Override
     default Proposition apply(S s) {
@@ -125,21 +150,21 @@ public interface Proposition extends Supplier<Boolean> {
   }
 
   /**
-   * 対象に述語を結び付ける組立て関数。
+   * 一つの対象について、条件ごとの命題を作る関数。
    * @param <S> 対象の型
    */
   interface PropositionBuilderFromSubject<S> extends Function<Predicate<S>, Proposition> {
     /**
-     * 対象に述語を結び付ける。
+     * この対象がpredicateを満たす、という命題を返す。
      * @param predicate 述語。subjectで生成した組立て関数ではnullは命題の評価時に例外
-     * @return 対象を捕捉した遅延命題
+     * @return 指定した条件についての命題。真偽はtest/getで判定する
      */
     Proposition satisfies(Predicate<S> predicate);
 
     /**
-     * satisfiesへ委譲する。
+     * {@link #satisfies(Predicate)}と同じ命題を、Functionの操作名で作る。
      * @param s 述語
-     * @return 対象を捕捉した命題
+     * @return 指定した条件についての命題
      */
     @Override
     default Proposition apply(Predicate<S> s) {

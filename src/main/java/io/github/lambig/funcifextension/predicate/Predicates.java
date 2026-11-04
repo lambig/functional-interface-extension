@@ -3,15 +3,16 @@ package io.github.lambig.funcifextension.predicate;
 import java.util.Arrays;
 import java.util.function.Predicate;
 
-/** JDKの述語を左から短絡評価する複合述語を作る。 */
+/** 一つの対象について、複数の条件の「すべて」または「いずれか」を満たすかを判定する述語を作る。 */
 public class Predicates {
   private Predicates() {}
   /**
-   * 述語を引数順に評価し、最初のfalseでfalseを返す。
-   * 合成時には述語を実行しない。評価時の例外は伝播し、後続を評価しない。
+   * 対象が指定した条件をすべて満たす、という述語（論理積）を返す。
+   * 条件は引数順に判定し、falseになった後の条件は判定しない。
+   * 判定中の例外は呼出側へ伝わり、後の条件は判定しない。
    * @param <E> 入力の型
    * @param predicate 一つ以上のnullでない述語。入力値のnull許容は各述語による
-   * @return 合成した述語。一つだけの場合はその述語自体
+   * @return 全条件がtrueの場合にtrueを返す述語
    * @throws IllegalArgumentException 要素がゼロの場合
    * @throws NullPointerException 配列または要素がnullの場合（合成時）
    */
@@ -25,11 +26,12 @@ public class Predicates {
   }
 
   /**
-   * 述語を引数順に評価し、最初のtrueでtrueを返す。
-   * 合成時には述語を実行しない。評価時の例外は伝播し、後続を評価しない。
+   * 対象が指定した条件の少なくとも一つを満たす、という述語（論理和）を返す。
+   * 条件は引数順に判定し、trueになった後の条件は判定しない。
+   * 判定中の例外は呼出側へ伝わり、後の条件は判定しない。
    * @param <E> 入力の型
    * @param predicate 一つ以上のnullでない述語。入力値のnull許容は各述語による
-   * @return 合成した述語。一つだけの場合はその述語自体
+   * @return 一つ以上の条件がtrueの場合にtrueを返す述語
    * @throws IllegalArgumentException 要素がゼロの場合
    * @throws NullPointerException 配列または要素がnullの場合（合成時）
    */

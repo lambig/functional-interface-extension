@@ -1,11 +1,15 @@
 # functional-interface-extension
 
-Javaの関数合成、三引数の関数・述語、対象を捕捉する遅延判定を補うライブラリです。
-JDKの `Function` / `Predicate` / `Supplier` と組み合わせて使います。
-Java 8以降で動作し、外部runtime依存はありません。単純な二関数の合成にはJDKの `andThen` / `compose` も利用できます。
+Javaで、値の変換や条件判定を名前の付いた関数として表現するためのライブラリです。
+例えば「入力文字列を数量に変える」「未払いで金額が正の注文を選ぶ」「この注文を受け付けられるかを確かめる」といった処理を、JDKの `Function` / `Predicate` / `Supplier` と組み合わせて記述できます。
 
-このcheckoutは **1.1.3の公開候補**です。Maven Central公開前の確認には下記の `candidate` 手順を使ってください。
-既存公開版は1.1.2です。1.1.3では公開APIと評価動作を維持し、build・公開物・文書・導入例を整えています。
+- 複数の変換を一つの関数にする: `Functions`
+- 三つの値から結果や真偽を求める: `TriFunction` / `TriPredicate`
+- 対象の特徴や複数の条件で判定する: `By` / `Equals` / `Predicates`
+- 対象が決まった主張を表し、その真偽を尋ねる: `Proposition`（命題）
+
+Java 8以降で動作し、外部runtime依存はありません。
+このcheckoutは **1.1.3の公開候補**です。既存公開版は1.1.2です。公開前の候補を試す手順は[開発・候補検証](DEVELOPING.md)を参照してください。
 
 ## 導入
 
@@ -33,113 +37,103 @@ Maven:
 実行時の最小要件はJava 8です。このリポジトリと導入例のbuildにはJDK 17以降を使います。
 ソースとJavadocは同じ座標の `sources` / `javadoc` classifierで取得できます。
 
-## 最初の例
+## Predicate（述語）とProposition（命題）
+
+述語は、対象についての条件です。例えば「xは正の整数である」という述語は、xに何を当てはめるかによって真偽が決まります。
+その対象を3と定めた「3は正の整数である」は、真偽を問える**命題**です。「-1は正の整数である」も命題で、その真偽は偽です。
+
+| 表したいもの | Javaでの表現 | 真偽の求め方 |
+| --- | --- | --- |
+| xは正の整数である（述語 P(x)） | `Predicate<Integer>` | `positiveInteger.test(x)`: 対象xを渡す |
+| 3は正の整数である（命題 P(3)） | `Proposition` | `threeIsPositive.test()`: 対象は既に決まっている |
+| 命題P(3)の真偽 | `boolean` | `true` |
+
+```java
+import io.github.lambig.funcifextension.proposition.Proposition;
+import java.util.function.Predicate;
+
+Predicate<Integer> positiveInteger = n -> n > 0; // xは正の整数である
+Proposition threeIsPositive = Proposition.subject(3).satisfies(positiveInteger);
+Proposition minusOneIsPositive = Proposition.predicate(positiveInteger).satisfiedBy(-1);
+
+boolean three = threeIsPositive.test();                 // true
+boolean minusOne = minusOneIsPositive.test();           // false
+boolean both = threeIsPositive.and(minusOneIsPositive).test(); // false（かつ）
+boolean either = threeIsPositive.or(minusOneIsPositive).test(); // true（または）
+```
+
+`subject(3).satisfies(positiveInteger)` と `predicate(positiveInteger).satisfiedBy(3)` は、どちらも「3は正の整数である」という命題を作ります。対象から書くか、条件から書くかを選べます。
+
+Propositionは、**何についての条件かを決める場所と、真偽を尋ねる場所を分けたいとき**に使えます。
+例えば「この注文を受け付けられる」という命題を作って渡せば、受け取る側は注文や条件を改めて指定せず、`test()` で可否を確認できます。
+
+真偽は問い合わせた時点で求めます。「この注文は未払いである」のように状態に依存する命題は、支払後には偽になります。
+作成時の結果を後で使いたい場合は、その時点の `test()` の戻り値を保存します。
+
+## 値の変換と、対象に適用する条件
 
 ```java
 import io.github.lambig.funcifextension.function.Functions;
 import io.github.lambig.funcifextension.predicate.By;
-import io.github.lambig.funcifextension.proposition.Proposition;
+import io.github.lambig.funcifextension.predicate.Predicates;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-Function<String, Integer> parse = Functions.sequenceOf(String::trim, Integer::parseInt);
-int quantity = parse.apply(" 3 "); // 3
+Function<String, Integer> quantity = Functions.sequenceOf(String::trim, Integer::parseInt);
+int count = quantity.apply(" 3 "); // 3: 前後の空白を除いた文字列を数量にする
+
 Predicate<String> threeCharacters = By.having(String::length).thatEqualsTo(3);
-boolean matches = threeCharacters.test("abc"); // true
-Proposition ready = Proposition.subject("abc").satisfies(threeCharacters);
-boolean result = ready.test(); // true。呼出しのたびに評価する
+Predicate<String> startsWithA = text -> text.startsWith("a");
+Predicate<String> matching = Predicates.and(threeCharacters, startsWithA);
+boolean accepted = matching.test("abc"); // true: 3文字で、aから始まる
 ```
 
-[実行できる注文例](example/src/main/java/example/OrderExample.java)は、三引数での金額計算、プロパティ抽出、複合条件、注文変更後の再評価まで含みます。
-ライブラリのソースを同時にコンパイルせず、[Gradle](example/build.gradle) と [Maven](example/pom.xml) が同じPOM/JARを取得します。
-成功時の出力:
+単純な二関数の合成にはJDKの `andThen` / `compose` も利用できます。
+`Functions.sequenceOf(f, g)` は `g(f(x))`、`compositionOf(f, g)` は `f(g(x))` となる関数を返します。
 
-```text
-subtotal=1000; pending-before=true; pending-after=false; OK
-```
+[実行できる導入例](example/src/main/java/example/OrderExample.java)は、上の述語・命題に加え、注文の金額計算から受付可否までを扱います。
+注文が未払いで金額が正の間は受付可能、支払済みになると受付不可、という結果を確認できます。
+[MavenとGradleで実行する手順](DEVELOPING.md)を用意しています。
 
-## APIと評価の契約
+## 目的別のAPI
 
-| API | 動作 |
+| API | 得られるもの |
 | --- | --- |
-| `Functions.sequenceOf(f1, ..., fn)` | 2〜7関数を左から右へ合成。`apply` 時に実行 |
-| `Functions.compositionOf(f1, ..., fn)` | 2〜7関数を右から左へ合成。数学の関数合成と同じ順序 |
-| `Functions.applyTo(value)` | 値を先に捕捉し、後から渡された関数に適用 |
-| `TriFunction<A,B,C,R>` / `TriPredicate<A,B,C>` | 三引数の `apply` / `test` を表す関数型インターフェース |
-| `By.having(extractor).that(predicate)` | 値を抽出して判定。`thatEqualsTo(target)` は抽出値を深く比較 |
-| `Equals.to(target)` | `Objects.deepEquals` による比較。null、基本型配列、入れ子の配列も扱う |
-| `Predicates.and(...)` / `or(...)` | 引数順の論理積・論理和。最初のfalse／trueで短絡 |
-| `Proposition.subject(value).satisfies(predicate)` | 対象を先に指定する遅延命題 |
-| `Proposition.predicate(predicate).satisfiedBy(value)` | 述語を先に指定する遅延命題 |
-| `Proposition.test()` / `get()` | 呼出しごとに再評価。結果をキャッシュしない |
-| `Proposition.and(...)` / `or(...)`、インスタンスの `and(next)` / `or(next)` | 命題を引数順に短絡評価 |
-| `Proposition.toPredicate()` | 渡された入力を使用せず、その都度命題を評価 |
+| `Functions.sequenceOf(f1, ..., fn)` | f1からfnまでの変換を順につなぎ、最終結果を返す関数（2〜7関数） |
+| `Functions.compositionOf(f1, ..., fn)` | fnからf1の順に変換した結果を返す関数（2〜7関数） |
+| `Functions.applyTo(value)` | 後から選んだ関数をvalueに適用して、その結果を返す関数 |
+| `TriFunction<A,B,C,R>` | 三つの入力から一つの値を求める関数。例: 単価・数量・値引額から合計金額 |
+| `TriPredicate<A,B,C>` | 三つの入力が条件を満たすかを判定する述語 |
+| `By.having(extractor).that(predicate)` | 対象の特徴が条件を満たすかを判定する述語。例: 名前の長さが3である |
+| `By.having(extractor).thatEqualsTo(target)` | 対象の特徴がtargetと等しいかを判定する述語 |
+| `Equals.to(target)` | targetと等しいかを判定する述語。配列は要素の内容で比較 |
+| `Predicates.and(...)` / `or(...)` | 一つの対象について、全条件／少なくとも一条件を満たすかを判定する述語 |
+| `Proposition.subject(value).satisfies(predicate)` | 「valueはpredicateを満たす」という命題 |
+| `Proposition.predicate(predicate).satisfiedBy(value)` | 上と同じ命題を、条件から書く形 |
+| `Proposition.and(...)` / `or(...)` | 全命題／少なくとも一命題が成り立つという命題 |
+| 命題の `and(next)` / `or(next)` | この命題とnextの「かつ」／「または」 |
+| `Proposition.test()` / `get()` | 命題の真偽。getはSupplierとして利用できる |
+| `Proposition.toPredicate()` | 命題が成り立つときはすべての入力を受け入れる述語 |
 
-`By.That` と二つの `PropositionBuilder...` は `Function` でもあり、`apply` で対応する `that` / `satisfiedBy` / `satisfies` を呼べます。
+`By.That` と二つの `PropositionBuilder...` は `Function` としても使えます。
+それぞれの `apply` は `that` / `satisfiedBy` / `satisfies` と同じ結果を返します。
 
-### null・例外・可変値
+## 利用時の約束
 
-- `Functions` の合成ではnullの関数を合成時に拒否します。入力値や中間値のnullを扱えるかは渡した関数次第です。`applyTo(null)` はnullを保持し、nullの関数を渡すと評価時に例外になります。
-- `Predicates.and/or` は空配列で `IllegalArgumentException`、nullの配列・要素で合成時に `NullPointerException` となります。入力値は各述語へそのまま渡します。
-- `By.having` のnull抽出関数・`that` のnull述語は、完成した述語の評価時に例外になります。抽出結果のnullも判定する述語へそのまま渡します。
-- `Proposition.and/or` は空配列を拒否し、null配列も組立て時に拒否します。null要素は評価が到達したときだけ例外になります。述語指定がnullの場合も、命題の評価時に例外になります。
-- 合成中に利用者の関数・述語が投げた実行時例外はそのまま伝わり、後続は実行しません。
-- `Proposition` の対象、合成に渡した命題配列、`Equals.to` の比較対象は参照を保持します。コピーや同期は行いません。対象の変更は後の評価へ反映されます。命題配列は組立て後に変更しないでください。並行利用時の安全性は捕捉した対象と関数次第です。
+- 論理積はすべて真なら真、論理和は一つでも真なら真です。条件は指定順に判定し、結果が決まれば後の条件を判定しません。
+- 関数・述語が投げた実行時例外は呼出側へ伝わり、後の処理は実行しません。nullを対象にできるかは、指定する関数・述語の条件によります。
+- `Equals.to` では、両値がnullなら真、一方だけがnullなら偽です。配列は入れ子の配列も含めて内容を比較します。
+- 合成する関数・述語・命題には有効な値を指定してください。`Predicates.and/or` と `Proposition.and/or` には一つ以上の条件が必要です。無効な引数の例外と発生時期は各APIのJavadocに記載しています。
+- 状態が変わる対象の命題や等価比較では、後の判定結果も変わり得ます。命題の合成に使った配列は作成後に変更しないでください。並行利用できるかは対象と関数の契約によります。
 
-各引数・戻り値・例外の詳細は `sh gradlew javadoc` で生成する `build/docs/javadoc/index.html` にあります。API文書は日本語です。
+各引数・戻り値・例外は日本語Javadocで確認できます。生成手順は[開発文書](DEVELOPING.md)にあります。
 
-## buildと導入例の検証
+## 更新と切戻し
 
-JDK 17以降、Maven 3.9以降、Python 3、POSIX shellを使用します。WindowsではWSL等のPOSIX環境で次の共通スクリプトを実行できます。
-GradleはこのリポジトリのWrapper（9.7.1）で固定しています。
-
-```sh
-# ライブラリの試験と候補POM/JAR・sources・Javadocの生成
-sh gradlew clean check publishMavenJavaPublicationToCandidateRepository
-
-# 空の依存キャッシュで、独立したMaven／Gradleの利用と既存API互換性を検証
-sh verify-consumers.sh candidate
-```
-
-`TEST_JAVA_HOME` をJava 8など別のJDKへ設定すると、build用JDKを維持したまま試験と導入例の実行JDKを変更できます。
-CIはbuildにJDK 17、実行にJava 8／25を使います。Java 8 bytecode、POMの外部依存ゼロ、文書JARの内容、1.1.2との公開シグネチャ一致、1.1.2でコンパイルした利用コードの実行を検査します。
-結果は `build/consumer-results/candidate/` と `build/compatibility/` に出力します。
-
-候補リポジトリは `build/repository` です。`mavenLocal` やcomposite buildでソースを置換しません。個別に動かす場合:
-
-```sh
-sh gradlew -p example -PcandidateRepository="$PWD/build/repository" clean runExample
-mvn -f example/pom.xml -DcandidateRepository="file://$PWD/build/repository" clean compile dependency:build-classpath -Dmdep.outputFile=target/runtime-classpath.txt
-java -cp "example/target/classes:$(cat example/target/runtime-classpath.txt)" example.OrderExample
-```
-
-公開完了後は同じ導入例を候補リポジトリなしで確認します。
-
-```sh
-sh verify-consumers.sh public 1.1.3
-```
-
-## 1.1.2からの更新と切戻し
-
-1. 利用プロジェクトでバージョンを1.1.3へ固定し、依存解決・コンパイル・利用側試験を実行します。
-2. `sequenceOf` / `compositionOf` の順序や、可変対象を使う命題が想定どおりか確認します。更新前後で公開シグネチャと動作を変える意図はありません。
-3. 問題がある場合は依存の固定版を1.1.2へ戻し、同じ試験を実行します。データ移行はありません。
-
-このライブラリの互換性検査は全利用プロジェクトの動作を保証するものではありません。利用側で独自の関数・述語を組み合わせた経路は、利用側の試験で確認してください。
-
-## 公開物の作成
-
-実装・sources・日本語Javadoc・POMと署名を一組で作成します。通常の開発・試験には認証情報は不要です。
-公開者は外部で管理する `SIGNING_KEY`（ASCII-armored秘密鍵）と `SIGNING_PASSWORD` を環境へ設定し、次を実行します。値をコマンドラインやリポジトリへ記載しないでください。
-
-```sh
-sh gradlew clean check centralBundle -PreleaseBundle
-```
-
-出力は `build/central/functional-interface-extension-1.1.3-central.zip` です。署名が欠けるとbundle生成は失敗します。
-このタスクはCentralへ送信しません。公開者が全ファイル・メタデータ・署名を確認し、[Central Portal](https://central.sonatype.com/publishing)で検証・公開した後、上記 `public` 検証と利用側の更新を行います。
-候補検証の成功だけで公開完了とは判断しません。
+1.1.2から1.1.3への更新では、利用プロジェクトの版を固定し直してコンパイルと利用側試験を実行します。公開APIと評価結果を変える意図はありません。
+問題があれば固定版を1.1.2へ戻し、同じ試験を実行します。データ移行はありません。
+独自の関数・述語を組み合わせた処理は、利用側の試験で確認してください。
 
 ## ライセンス
 
-[MIT](LICENSE)。実装JAR・sources・Javadocには `META-INF/LICENSE` を含めます。
+[MIT](LICENSE)。

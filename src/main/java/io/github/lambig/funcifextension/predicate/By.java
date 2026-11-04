@@ -3,31 +3,34 @@ package io.github.lambig.funcifextension.predicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-/** 値から取り出した要素に述語を適用する。 */
+/**
+ * 対象の特徴に着目した条件を表す。
+ * 例えば{@code By.having(String::length).thatEqualsTo(3)}は「文字列の長さが3である」という述語になる。
+ */
 public class By {
   private By() {}
 
   /**
-   * extractorで要素を取り出し、その結果を検査するための組立て関数を返す。
-   * extractorや述語の評価は、完成した述語のtest呼出し時に行う。
+   * 条件に使う対象の特徴を指定する。
+   * 例えば文字列の長さを指定すれば、その長さについての条件から文字列の述語を作れる。
    * @param <O> 元の値の型
    * @param <F> 取り出す要素の型
    * @param extractor 要素を取り出す関数。nullは評価時にNullPointerException
-   * @return 要素の述語を受け取る組立て関数
+   * @return 特徴についての条件を指定すると、元の対象についての述語を返す関数
    */
   public static <O, F> That<O, F> having(Function<O, F> extractor) {
     return fPredicate -> o -> fPredicate.test(extractor.apply(o));
   }
 
   /**
-   * 要素の述語を元の値の述語へ変換する関数。
+   * 特徴についての条件から、元の対象についての述語を作る関数。
    * @param <A> 元の値の型
    * @param <B> 要素の型
    */
   public interface That<A, B> extends Function<Predicate<B>, Predicate<A>> {
 
     /**
-     * {@link #that(Predicate)}へ委譲する。
+     * {@link #that(Predicate)}と同じ述語を、Functionの操作名で作る。
      * @param original 要素の述語
      * @return 元の値の述語
      */
@@ -37,7 +40,7 @@ public class By {
     }
 
     /**
-     * 要素の述語を指定する。
+     * 対象の特徴がbPredicateを満たす、という述語を返す。
      * havingで生成した組立て関数では、抽出結果のnullをそのまま渡し、例外を伝播する。
      * @param bPredicate 要素の述語。havingの結果へnullを渡すとtest時にNullPointerException
      * @return 元の値に適用する述語
@@ -45,7 +48,8 @@ public class By {
     Predicate<A> that(Predicate<B> bPredicate);
 
     /**
-     * 要素を{@link Equals#to(Object)}の深い等価比較で検査する。
+     * 対象の特徴がtargetと等しい、という述語を返す。
+     * 配列やnullの比較は{@link Equals#to(Object)}と同じ条件になる。
      * @param target 比較対象（null可）
      * @return 元の値に適用する述語
      */
