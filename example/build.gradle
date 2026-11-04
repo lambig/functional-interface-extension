@@ -6,7 +6,6 @@ repositories {
             forRepository {
                 maven {
                     url = uri(providers.gradleProperty('candidateRepository').get())
-                    metadataSources { mavenPom(); ignoreGradleMetadataRedirection() }
                 }
             }
             filter { includeModule('io.github.lambig', 'functional-interface-extension') }

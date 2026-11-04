@@ -86,10 +86,11 @@ tasks.register('centralBundle', Zip) {
     from(layout.buildDirectory.dir('repository')) {
         include "io/github/lambig/${project.name}/${project.version}/*.jar*"
         include "io/github/lambig/${project.name}/${project.version}/*.pom*"
+        include "io/github/lambig/${project.name}/${project.version}/*.module*"
     }
     doFirst {
         if (!releaseBundle) throw new GradleException('centralBundle requires -PreleaseBundle and signing credentials')
-        ['.jar', '-sources.jar', '-javadoc.jar', '.pom'].each { suffix ->
+        ['.jar', '-sources.jar', '-javadoc.jar', '.pom', '.module'].each { suffix ->
             def signature = layout.buildDirectory.file("repository/io/github/lambig/${project.name}/${project.version}/${project.name}-${project.version}${suffix}.asc").get().asFile
             if (!signature.isFile()) throw new GradleException("Missing signature: ${signature.name}")
         }
