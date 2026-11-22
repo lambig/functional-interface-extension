@@ -13,7 +13,7 @@ Java 8以降で動作し、外部runtime依存はありません。
 
 ## 導入
 
-公開後はMaven Centralから固定版を取得します。toolboxやABServiceへの依存はありません。
+公開後はMaven Centralから固定版を取得します。
 
 Gradle:
 
