@@ -9,11 +9,11 @@ Javaで、値の変換や条件判定を名前の付いた関数として表現�
 - 対象が決まった主張を表し、その真偽を尋ねる: `Proposition`（命題）
 
 Java 8以降で動作し、外部runtime依存はありません。
-このcheckoutは **1.1.3の公開候補**です。既存公開版は1.1.2です。公開前の候補を試す手順は[開発・候補検証](DEVELOPING.md)を参照してください。
+以下は公開版1.1.3の導入例です。取得できる版は[Maven Centralの版一覧](https://repo.maven.apache.org/maven2/io/github/lambig/functional-interface-extension/)を参照してください。変更中の候補を試す手順は[開発・候補検証](DEVELOPING.md)を参照してください。
 
 ## 導入
 
-公開後はMaven Centralから固定版を取得します。
+Maven Centralから固定版を取得します。
 
 Gradle:
 
@@ -35,7 +35,7 @@ Maven:
 ```
 
 実行時の最小要件はJava 8です。このリポジトリと導入例のbuildにはJDK 17以降を使います。
-ソースとJavadocは同じ座標の `sources` / `javadoc` classifierで取得できます。
+公開版1.1.3の[ソース](https://repo.maven.apache.org/maven2/io/github/lambig/functional-interface-extension/1.1.3/functional-interface-extension-1.1.3-sources.jar)と[API文書](https://repo.maven.apache.org/maven2/io/github/lambig/functional-interface-extension/1.1.3/functional-interface-extension-1.1.3-javadoc.jar)は、同じ座標の `sources` / `javadoc` classifierで取得できます。API文書JARを展開し、`index.html`を開いてください。
 
 ## Predicate（述語）とProposition（命題）
 

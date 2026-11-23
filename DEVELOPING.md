@@ -5,7 +5,7 @@
 ## buildと導入例の検証
 
 JDK 17以降、Maven 3.9以降、Python 3、POSIX shellを使用します。WindowsではWSL等のPOSIX環境で次の共通スクリプトを実行できます。
-GradleはこのリポジトリのWrapper（9.7.1）で固定しています。
+Gradleの固定版は[Wrapper設定](gradle/wrapper/gradle-wrapper.properties)を参照してください。
 
 ```sh
 # ライブラリの試験と候補POM/JAR・sources・Javadocの生成
@@ -27,7 +27,7 @@ mvn -f example/pom.xml -DcandidateRepository="file://$PWD/build/repository" clea
 java -cp "example/target/classes:$(cat example/target/runtime-classpath.txt)" example.OrderExample
 ```
 
-公開完了後は同じ導入例を候補リポジトリなしで確認します。
+公開版は同じ導入例を候補リポジトリなしで確認します。公開版の選択とAPI文書の取得先は[READMEの導入](README.md#導入)を参照してください。
 
 ```sh
 sh verify-consumers.sh public 1.1.3
